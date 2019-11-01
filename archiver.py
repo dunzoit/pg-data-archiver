@@ -45,6 +45,7 @@ def main(argv):
             print(command_options)
             sys.exit()
 
+    # Checks for filters in the select query
     if not data_selection_query.upper().startswith("SELECT"):
         print("Provide proper SELECT query for archival data selection")
         sys.exit()
@@ -54,6 +55,7 @@ def main(argv):
               "resource utilization")
         sys.exit()
 
+    # Checks for filters in the delete query
     if not data_deletion_query.upper().startswith("DELETE"):
         print("Provide proper DELETE query for archived data deletion")
         sys.exit()
@@ -63,12 +65,15 @@ def main(argv):
               "resource utilization")
         sys.exit()
 
+    # Checks if filters on select and delete queries are same
     delete_query = data_deletion_query.upper().split("FROM", 1)[1]
     select_query = data_selection_query.upper().split("FROM", 1)[1]
     if delete_query != select_query:
         print("Aborting: Data selection and data deletion conditions do not "
               "match")
         sys.exit()
+
+    # Fetches data for archival from the database
     connection = psycopg2.connect(dbname=settings.DB_NAME,
                                   user=settings.DB_USERNAME,
                                   password=settings.DB_PASSWORD,
@@ -77,6 +82,8 @@ def main(argv):
     cursor = connection.cursor()
     cursor.execute(data_selection_query)
     results = cursor.fetchall()
+
+    # Writes the data selected for archival into the file with name provided
     csv.register_dialect("with_quotes",
                          quoting=csv.QUOTE_ALL,
                          skipinitialspace=False)
@@ -84,6 +91,8 @@ def main(argv):
         writer = csv.writer(csv_file, dialect="with_quotes")
         writer.writerows(results)
     csv_file.close()
+
+    # Uploads the archival data file into AWS S3
     region = settings.AWS_REGION
     access_key = settings.AWS_KEY
     secret = settings.AWS_SECRET
@@ -95,6 +104,8 @@ def main(argv):
     except Exception as e:
         print(e)
         sys.exit()
+
+    # Downloads the uploaded file from S3 and compares it with the original
     file_name_download = filename.split(".")[0] + '_downloaded.csv'
     with open(file_name_download, 'wb') as download:
         s3_client.download_fileobj(bucket, filename, download)
@@ -105,6 +116,8 @@ def main(argv):
     if run_type != "archive":
         print("All connections working fine. Dry run was successful")
         sys.exit()
+
+    # Deletes the data from the database
     cursor.execute(data_deletion_query)
     connection.commit()
     cursor.close()
