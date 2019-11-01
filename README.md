@@ -20,6 +20,8 @@ Modify `settings.py` to update the connection credentials for your database
 **CAUTION:** *Run archival on small data chunks to avoid script from
  consuming too much DB resources especially READ and WRITE IOPS and CPU*
 
+Some test data is available in `test_data.sql`. Feel free to use it to test the below examples.
+
 Perform a dry run: Connects to the database, selects the data for archival
 and uploads the data to s3 and verifies the uploaded file contents. Always default to dryrun.
 ```
